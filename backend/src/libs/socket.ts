@@ -44,7 +44,7 @@ import { instrument } from "@socket.io/admin-ui";
 import { Server } from "http";
 import { verify } from "jsonwebtoken";
 import AppError from "../errors/AppError";
-import { logger } from "../utils/logger";
+import { logger, socketSendBuffer } from "../utils/logger";
 import User from "../models/User";
 import Queue from "../models/Queue";
 import Ticket from "../models/Ticket";
@@ -118,7 +118,6 @@ export const initIO = (httpServer: Server): SocketIO => {
     if (userId && userId !== "undefined" && userId !== "null") {
       user = await User.findByPk(userId, { include: [Queue] });
       if (user) {
-        user.online = true;
         await user.save();
       } else {
         logger.info(`onConnect: User ${userId} not found`);
@@ -172,6 +171,7 @@ export const initIO = (httpServer: Server): SocketIO => {
             "started transmission of backend logs"
           ]
         });
+        socketSendBuffer();
       } else {
         logger.info(`User ${user.id} tried to join superlog channel.`);
       }

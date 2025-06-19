@@ -7,7 +7,8 @@ import makeWASocket, {
   CacheStore,
   WAMessageKey,
   WAMessageContent,
-  proto
+  proto,
+  jidNormalizedUser
 } from "baileys";
 
 import { Boom } from "@hapi/boom";
@@ -35,6 +36,8 @@ import OutOfTicketMessage from "../models/OutOfTicketMessages";
 
 export type Session = WASocket & {
   id?: number;
+  myJid?: string;
+  myLid?: string;
   cacheMessage?: (msg: proto.IWebMessageInfo) => void;
 };
 
@@ -320,11 +323,27 @@ export const initWASocket = async (
             }
 
             if (connection === "open") {
+              wsocket.myLid = jidNormalizedUser(wsocket.user?.lid);
+              wsocket.myJid = jidNormalizedUser(wsocket.user.id);
+
               await whatsapp.update({
                 status: "CONNECTED",
                 qrcode: "",
                 retries: 0
               });
+
+              logger.debug(
+                {
+                  id: jidNormalizedUser(wsocket.user.id),
+                  name: wsocket.user.name,
+                  lid: jidNormalizedUser(wsocket.user?.lid),
+                  notify: wsocket.user?.notify,
+                  verifiedName: wsocket.user?.verifiedName,
+                  imgUrl: wsocket.user?.imgUrl,
+                  status: wsocket.user?.status
+                },
+                `Session ${name} details`
+              );
 
               io.emit(`company-${whatsapp.companyId}-whatsappSession`, {
                 action: "update",
